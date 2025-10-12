@@ -168,7 +168,7 @@ class DailyConsumption(VeoliaMesurements):
     @property
     def state_class(self) -> str:
         """Return the state_class of the sensor."""
-        return SensorStateClass.MEASUREMENT
+        return SensorStateClass.TOTAL
 
     @property
     def native_unit_of_measurement(self) -> str:
