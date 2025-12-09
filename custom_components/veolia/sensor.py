@@ -1,6 +1,7 @@
 """Sensor platform for Veolia."""
 
 from homeassistant.components.recorder.statistics import (
+    StatisticMeanType,
     StatisticMetaData,
     async_import_statistics,
 )
@@ -98,6 +99,7 @@ class LastIndexSensor(VeoliaMesurements):
         metadata = StatisticMetaData(
             has_mean=False,
             has_sum=True,
+            mean_type=StatisticMeanType.NONE,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
@@ -157,6 +159,7 @@ class DailyConsumption(VeoliaMesurements):
         metadata = StatisticMetaData(
             has_mean=True,
             has_sum=True,
+            mean_type=StatisticMeanType.ARITHMETIC,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
@@ -252,6 +255,7 @@ class MonthlyConsumption(VeoliaMesurements):
         metadata = StatisticMetaData(
             has_mean=False,
             has_sum=True,
+            mean_type=StatisticMeanType.NONE,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
