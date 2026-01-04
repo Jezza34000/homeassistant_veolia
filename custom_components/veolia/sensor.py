@@ -97,9 +97,10 @@ class LastIndexSensor(VeoliaMesurements):
             LOGGER.debug("No data update for %s", self.__class__.__name__)
             return
         metadata = StatisticMetaData(
-            has_mean=False,
-            has_sum=True,
+            #has_mean=False,
             mean_type=StatisticMeanType.NONE,
+            unit_class= None,        # This will stop working in Home Assistant 2026.11
+            has_sum=True,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
@@ -157,9 +158,10 @@ class DailyConsumption(VeoliaMesurements):
             LOGGER.debug("No data update for %s", self.__class__.__name__)
             return
         metadata = StatisticMetaData(
-            has_mean=True,
+            mean_type=StatisticMeanType.NONE,    # fix issue #58
+            unit_class= None,         # This will stop working in Home Assistant 2026.11
+            #has_mean=True,
             has_sum=True,
-            mean_type=StatisticMeanType.ARITHMETIC,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
@@ -253,9 +255,10 @@ class MonthlyConsumption(VeoliaMesurements):
             LOGGER.debug("No data update for %s", self.__class__.__name__)
             return
         metadata = StatisticMetaData(
-            has_mean=False,
-            has_sum=True,
+            #has_mean=False,
             mean_type=StatisticMeanType.NONE,
+            unit_class= None,        # This will stop working in Home Assistant 2026.11
+            has_sum=True,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
