@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from dateutil.relativedelta import relativedelta
 from veolia_api import VeoliaAPI
 from veolia_api.exceptions import VeoliaAPIError
 
@@ -62,7 +63,7 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 # Regular fetch
                 LOGGER.debug("Periodic fetch - 2 months")
-                start_date = date(now.year, now.month - 1, 1)
+                start_date = date(now.year, now.month, 1) - relativedelta(months=1)
                 end_date = date(now.year, now.month, 1)
 
             await self.client_api.fetch_all_data(start_date, end_date)
