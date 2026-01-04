@@ -62,7 +62,7 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 # Regular fetch
                 LOGGER.debug("Periodic fetch - 2 months")
-                if (now.month > 1):
+                if now.month > 1:
                     start_date = date(now.year, now.month - 1, 1)
                 else:
                     start_date = date(now.year - 1, 12, 1)
