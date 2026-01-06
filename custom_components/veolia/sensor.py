@@ -9,6 +9,7 @@ from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.const import UnitOfVolume
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util.unit_conversion import VolumeConverter
 
 from .const import DOMAIN, LOGGER
 from .entity import VeoliaMesurements
@@ -97,12 +98,12 @@ class LastIndexSensor(VeoliaMesurements):
             LOGGER.debug("No data update for %s", self.__class__.__name__)
             return
         metadata = StatisticMetaData(
-            has_mean=False,
-            has_sum=True,
             mean_type=StatisticMeanType.NONE,
+            has_sum=True,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
+            unit_class=VolumeConverter.UNIT_CLASS,
             unit_of_measurement=UnitOfVolume.CUBIC_METERS,
         )
         LOGGER.debug("-> StatisticMetaData %s Data : %s", metadata, stats)
@@ -157,12 +158,12 @@ class DailyConsumption(VeoliaMesurements):
             LOGGER.debug("No data update for %s", self.__class__.__name__)
             return
         metadata = StatisticMetaData(
-            has_mean=True,
+            mean_type=StatisticMeanType.NONE,
             has_sum=True,
-            mean_type=StatisticMeanType.ARITHMETIC,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
+            unit_class=VolumeConverter.UNIT_CLASS,
             unit_of_measurement=UnitOfVolume.LITERS,
         )
         LOGGER.debug("-> StatisticMetaData %s Data : %s", metadata, stats)
@@ -253,12 +254,12 @@ class MonthlyConsumption(VeoliaMesurements):
             LOGGER.debug("No data update for %s", self.__class__.__name__)
             return
         metadata = StatisticMetaData(
-            has_mean=False,
-            has_sum=True,
             mean_type=StatisticMeanType.NONE,
+            has_sum=True,
             name=None,
             source="recorder",
             statistic_id=self.entity_id,
+            unit_class=VolumeConverter.UNIT_CLASS,
             unit_of_measurement=UnitOfVolume.CUBIC_METERS,
         )
         LOGGER.debug("-> StatisticMetaData %s Data : %s", metadata, stats)
