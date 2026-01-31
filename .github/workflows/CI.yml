@@ -22,19 +22,19 @@ jobs:
         python-version: ["3.13"]
 
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # Version 6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # Version 6.0.2
         with:
           fetch-depth: 0
 
       - name: Cache pip
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # Version 5.0.1
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # Version 5.0.2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # Version 6.1.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # Version 6.2.0
         with:
           python-version: "${{ matrix.python-version }}"
 
