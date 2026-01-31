@@ -18,7 +18,7 @@
       },
       "credentials": {
         "title": "Credentials",
-        "description": "Good news, your Veolia account works with this integration. Please enter your login information that you use to log in to http://eau.veolia.fr :",
+        "description": "Good news, your Veolia account works with this integration. Please enter your login information that you use to log in to eau.veolia.fr :",
         "data": {
           "username": "Username",
           "password": "Password"

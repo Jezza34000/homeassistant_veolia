@@ -18,7 +18,7 @@
       },
       "credentials": {
         "title": "Informations d'identification",
-        "description": "Bonne nouvelle votre compte Veolia fonctionne avec cette intégration. Veuillez entrer vos informations de connexion que vous utilisez pour vous connecter sur http://eau.veolia.fr :",
+        "description": "Bonne nouvelle votre compte Veolia fonctionne avec cette intégration. Veuillez entrer vos informations de connexion que vous utilisez pour vous connecter sur eau.veolia.fr :",
         "data": {
           "username": "Nom d'utilisateur",
           "password": "Mot de passe"
