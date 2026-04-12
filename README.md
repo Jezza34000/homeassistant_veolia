@@ -18,9 +18,9 @@
 >
 > Merci d’avance pour votre aide et votre engagement ! 💙
 
-> ### UNIQUEMENT compatible avec le nouveau site de Veolia : https://www.eau.veolia.fr/
+> ### Portails compatibles : voir [PORTALS.md](https://github.com/Jezza34000/veolia-api/blob/main/PORTALS.md)
 >
-> ### N'est PAS compatible avec les sous domaines suivant : https://service.eau.veolia.fr & https://espace-client.vedif.eau.veolia.fr
+> ### N'est PAS compatible avec : https://service.eau.veolia.fr & https://espace-client.vedif.eau.veolia.fr
 
 ---
 
@@ -100,6 +100,32 @@ Pour ajouter la carte de consommation d'eau journalière, sur votre dashboard, c
 <a href=""><img src="https://raw.githubusercontent.com/Jezza34000/homeassistant_veolia/main/images/config_carte.png"></a>
 
 > #### **Note :** La carte Graphique des statistiques ne fonctionnera qu'avec le sensor `sensor.veolia_consommation_journaliere`
+
+## Vérifier l'éligibilité de votre commune
+
+Avant d'installer l'intégration, vous pouvez vérifier si votre commune est prise en charge en interrogeant l'API Veolia depuis votre navigateur ou avec `curl` :
+
+```
+https://prd-ael-sirius-refcommunes.istefr.fr/communes-nationales?q=VOTRE_CODE_POSTAL
+```
+
+Dans le résultat JSON, cherchez votre commune et examinez le champ `type_commune` :
+
+| Valeur `type_commune`         | Éligibilité                                  |
+| ----------------------------- | -------------------------------------------- |
+| `NON_REDIRIGE`                | ✅ Compatible — portail `eau.veolia.fr`      |
+| `REDIRIGE` (hostname connu)   | ✅ Compatible — portail alternatif supporté  |
+| `REDIRIGE` (hostname inconnu) | ❌ Non supporté — portail non encore intégré |
+| `NON_DESSERVIE`               | ❌ Veolia ne dessert pas cette commune       |
+
+# Portails Veolia supportés (04/2026)
+
+| Hostname                          | Description               |
+| --------------------------------- | ------------------------- |
+| `eau.veolia.fr`                   | Veolia France (national)  |
+| `eaudetm.monespace.eau.veolia.fr` | Eau de Toulouse Métropole |
+
+Votre portail n'est pas géré? Voir [CONTRIBUTING.md](https://github.com/Jezza34000/veolia-api/blob/main/CONTRIBUTING.md#adding-a-portal)
 
 ## Installation
 

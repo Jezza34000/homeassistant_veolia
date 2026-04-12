@@ -15,7 +15,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, LOGGER
+from .const import CONF_PORTAL_URL, DOMAIN, LOGGER
 from .data import VeoliaConfigEntry
 from .model import VeoliaModel
 
@@ -45,6 +45,7 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
             username=self.config_entry.data[CONF_USERNAME],
             password=self.config_entry.data[CONF_PASSWORD],
             session=async_get_clientsession(hass),
+            portal_url=self.config_entry.data.get(CONF_PORTAL_URL),
         )
 
         self._initial_historical_fetch = False
