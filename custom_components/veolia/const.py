@@ -6,7 +6,6 @@ LOGGER: Logger = getLogger(__package__)
 
 DOMAIN = "veolia"
 NAME = "Veolia"
-CONF_PORTAL_URL = "portal_url"
 
 # Platforms
 SENSOR = "sensor"

@@ -7,15 +7,15 @@ from typing import TYPE_CHECKING
 
 from dateutil.relativedelta import relativedelta
 from veolia_api import VeoliaAPI
-from veolia_api.exceptions import VeoliaAPIError
+from veolia_api.exceptions import VeoliaAPIError, VeoliaAPIInvalidCredentialsError
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_PORTAL_URL, DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER
 from .data import VeoliaConfigEntry
 from .model import VeoliaModel
 
@@ -45,7 +45,6 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
             username=self.config_entry.data[CONF_USERNAME],
             password=self.config_entry.data[CONF_PASSWORD],
             session=async_get_clientsession(hass),
-            portal_url=self.config_entry.data.get(CONF_PORTAL_URL),
         )
 
         self._initial_historical_fetch = False
@@ -71,5 +70,7 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
             account_data = self.client_api.account_data
             today = dt_util.now().date()
             return VeoliaModel.from_account_data(account_data, today=today)
-        except VeoliaAPIError as exception:
+        except VeoliaAPIInvalidCredentialsError as exception:
             raise ConfigEntryAuthFailed(exception) from exception
+        except VeoliaAPIError as exception:
+            raise UpdateFailed(exception) from exception

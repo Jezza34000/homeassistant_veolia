@@ -1,18 +1,15 @@
 """Config flow for veolia integration."""
 
-from urllib.parse import urlparse
-
 import aiohttp
 from veolia_api import VeoliaAPI
-from veolia_api.exceptions import VeoliaAPIInvalidCredentialsError
-from veolia_api.portals import VEOLIA_PORTAL_CLIENTS
+from veolia_api.exceptions import VeoliaAPIInvalidCredentialsError, VeoliaAPITokenError
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_PORTAL_URL, DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER
 
 
 class VeoliaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -26,7 +23,6 @@ class VeoliaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
         self._postal_code = None
         self._communes = []
-        self._portal_url: str | None = None
 
     async def async_step_user(self, user_input=None) -> dict:
         """Handle a flow initialized by the user."""
@@ -54,23 +50,14 @@ class VeoliaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 None,
             )
-            if selected_commune["type_commune"] == "NON_REDIRIGE":
-                self._portal_url = None
+            if selected_commune["type_commune"] in ("NON_REDIRIGE", "REDIRIGE"):
                 return await self.async_step_credentials()
 
-            if selected_commune["type_commune"] == "REDIRIGE":
-                url_redirection = selected_commune.get("url_redirection", "")
-                hostname = urlparse(url_redirection).hostname or ""
-                if hostname in VEOLIA_PORTAL_CLIENTS:
-                    self._portal_url = hostname
-                    return await self.async_step_credentials()
-                self._errors["base"] = "commune_not_supported"
-            elif selected_commune["type_commune"] == "NON_DESSERVIE":
+            if selected_commune["type_commune"] == "NON_DESSERVIE":
                 self._errors["base"] = "commune_not_veolia"
             else:
                 self._errors["base"] = "commune_not_supported"
 
-        LOGGER.debug("Fetching communes for postal code %s", self._postal_code)
         async with (
             aiohttp.ClientSession() as session,
             session.get(
@@ -78,7 +65,6 @@ class VeoliaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             ) as response,
         ):
             self._communes = await response.json()
-            LOGGER.debug("Communes found: %s", self._communes)
 
         if not self._communes:
             self._errors["base"] = "no_communes_found"
@@ -102,16 +88,15 @@ class VeoliaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_USERNAME],
                     user_input[CONF_PASSWORD],
                     async_get_clientsession(self.hass),
-                    portal_url=self._portal_url,
                 )
                 valid = await api.login()
 
                 if valid:
                     return self.async_create_entry(
                         title=user_input[CONF_USERNAME],
-                        data={**user_input, CONF_PORTAL_URL: self._portal_url},
+                        data=user_input,
                     )
-            except VeoliaAPIInvalidCredentialsError:
+            except (VeoliaAPIInvalidCredentialsError, VeoliaAPITokenError):
                 self._errors["base"] = "invalid_credentials"
             except Exception:  # noqa: BLE001
                 LOGGER.debug("Unknown exception")
