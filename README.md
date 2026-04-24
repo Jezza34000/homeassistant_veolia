@@ -82,6 +82,7 @@ Informations supplémentaires :
 ### Visualisation des données de consommation
 
 L'intégration Veolia permet de visualiser les données de consommation d'eau en natif dans Home Assistant. Elle re-télécharge l'historique du mois en cours depuis Véolia et met à jour la base de données Home Assistant.
+
 > Pour visualiser les informations à la bonne date, il est nécéssaire d'utiliser le sensor de consommation journalière (l'utilisation du sensor index compteur générera un décalage dans les dates)
 
 #### 1. Ajout au dashboard energie de Home Assistant
