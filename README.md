@@ -1,4 +1,4 @@
-<a href=""><img src="https://raw.githubusercontent.com/Jezza34000/homeassistant_veolia/main/images/veolialogo.png"></a>
+<a href=""><img src="images/veolialogo.png"></a>
 
 [![GitHub Release][releases-shield]][releases]
 [![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg?style=for-the-badge)](https://hacs.xyz/docs/faq/custom_repositories)
@@ -18,7 +18,7 @@
 >
 > Merci d’avance pour votre aide et votre engagement ! 💙
 
-> ### Portails compatibles : voir [PORTALS.md](https://github.com/Jezza34000/veolia-api/blob/main/PORTALS.md)
+> ### Portails compatibles : voir [PORTALS.md](PORTALS.md)
 >
 > ### N'est PAS compatible avec : https://service.eau.veolia.fr & https://espace-client.vedif.eau.veolia.fr
 
@@ -51,11 +51,11 @@
 
 ### Capteurs :
 
-<a href=""><img src="https://raw.githubusercontent.com/Jezza34000/homeassistant_veolia/main/images/capteurs.png"></a>
+<a href=""><img src="images/capteurs.png"></a>
 
 ### Contrôles :
 
-<a href=""><img src="https://raw.githubusercontent.com/Jezza34000/homeassistant_veolia/main/images/controles.png"></a>
+<a href=""><img src="images/controles.png"></a>
 
 ### Configuration des alertes
 
@@ -85,19 +85,19 @@ L'intégration Veolia permet de visualiser les données de consommation d'eau en
 
 #### 1. Ajout au dashboard energie de Home Assistant
 
-<a href=""><img src="https://raw.githubusercontent.com/Jezza34000/homeassistant_veolia/main/images/dashboard_eau.png"></a>
+<a href=""><img src="images/dashboard_eau.png"></a>
 
-Pour ajouter la consommation d'eau au dashboard energie de Home Assistant, allez `Energie` -> 3 petits points en haut à droite -> `Configuration de l'energie` -> `Ajouter une source d'eau` -> Dans le champ `Consommation d'eau` choissisez `sensor.veolia_index_compteur`
+Pour ajouter la consommation d'eau au dashboard energie de Home Assistant, allez `Energie` -> crayon en haut à droite -> `Eau` -> `Ajouter une consommation d'eau` -> Dans le champ `Consommation d'eau` choissisez `sensor.veolia_xxx_conso_journaliere`
 
-<a href=""><img src="https://raw.githubusercontent.com/Jezza34000/homeassistant_veolia/main/images/consommation.png"></a>
+<a href=""><img src="images/consommation.png"></a>
 
 #### 2. Ajout d'une carte de consommation d'eau journalière
 
-<a href=""><img src="https://raw.githubusercontent.com/Jezza34000/homeassistant_veolia/main/images/historique.png"></a>
+<a href=""><img src="images/historique.png"></a>
 
 Pour ajouter la carte de consommation d'eau journalière, sur votre dashboard, cliquez sur `Ajouter une carte` puis selectionner `Graphique des statistiques` et choissisez l'entité `sensor.veolia_consommation_journaliere`, configurer la carte comme l'exemple ci-dessous :
 
-<a href=""><img src="https://raw.githubusercontent.com/Jezza34000/homeassistant_veolia/main/images/config_carte.png"></a>
+<a href=""><img src="images/config_carte.png"></a>
 
 > #### **Note :** La carte Graphique des statistiques ne fonctionnera qu'avec le sensor `sensor.veolia_consommation_journaliere`
 
@@ -125,7 +125,7 @@ Dans le résultat JSON, cherchez votre commune et examinez le champ `type_commun
 | `eau.veolia.fr`                   | Veolia France (national)  |
 | `eaudetm.monespace.eau.veolia.fr` | Eau de Toulouse Métropole |
 
-Votre portail n'est pas géré? Voir [CONTRIBUTING.md](https://github.com/Jezza34000/veolia-api/blob/main/CONTRIBUTING.md#adding-a-portal)
+Votre portail n'est pas géré? Voir [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-portal)
 
 ## Installation
 
