@@ -96,14 +96,14 @@ Pour ajouter la consommation d'eau au dashboard energie de Home Assistant, allez
 #### 2. Ajout d'une carte de consommation d'eau journalière
 
 > [!WARNING]
-> 
+>
 > Pourquoi le sensor `veolia_xxx_conso_journaliere` reste à 0 ? Je n'arrive pas à avoir ma consommation du jour ?
-> 
+>
 > C'est une contrainte technique de Veolia, PAS UN BUG !
-> 
+>
 > Veolia traite et publie les données de consommation avec un délai de minimum 24 hrs, parfois beacoup plus en fonction de la fréquence de collecte de la zone.
 > L'intégration ne peut retourner que ce que l'API Veolia expose, elle ne peut pas récupérer des données que Veolia n'a pas encore publiées...
-> 
+>
 > Le seul usage de ce sensor est l'usage avec une carte graphique comme décrit ci-dessous :
 
 <a href=""><img src="images/historique.png"></a>
