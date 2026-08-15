@@ -12,14 +12,13 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_PORTAL_URL, DOMAIN, LOGGER
+from .const import COMMUNE_LOOKUP_URL, CONF_PORTAL_URL, DOMAIN, LOGGER
 
 
 class VeoliaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for veolia."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     def __init__(self) -> None:
         """Initialize."""
@@ -54,34 +53,43 @@ class VeoliaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 None,
             )
-            if selected_commune["type_commune"] == "NON_REDIRIGE":
+            if (
+                selected_commune
+                and selected_commune.get("type_commune") == "NON_REDIRIGE"
+            ):
                 self._portal_url = None
                 return await self.async_step_credentials()
 
-            if selected_commune["type_commune"] == "REDIRIGE":
+            if selected_commune and selected_commune.get("type_commune") == "REDIRIGE":
                 url_redirection = selected_commune.get("url_redirection", "")
                 hostname = urlparse(url_redirection).hostname or ""
                 if hostname in VEOLIA_PORTAL_CLIENTS:
                     self._portal_url = hostname
                     return await self.async_step_credentials()
                 self._errors["base"] = "commune_not_supported"
-            elif selected_commune["type_commune"] == "NON_DESSERVIE":
+            elif (
+                selected_commune
+                and selected_commune.get("type_commune") == "NON_DESSERVIE"
+            ):
                 self._errors["base"] = "commune_not_veolia"
             else:
                 self._errors["base"] = "commune_not_supported"
 
         LOGGER.debug("Fetching communes for postal code %s", self._postal_code)
-        async with (
-            aiohttp.ClientSession() as session,
-            session.get(
-                f"https://prd-ael-sirius-refcommunes.istefr.fr/communes-nationales?q={self._postal_code}"
-            ) as response,
-        ):
+        session = async_get_clientsession(self.hass)
+        try:
+            response = await session.get(f"{COMMUNE_LOOKUP_URL}{self._postal_code}")
+            response.raise_for_status()
             self._communes = await response.json()
+        except aiohttp.ClientError:
+            LOGGER.exception("Failed to fetch communes")
+            self._errors["base"] = "unknown"
+            self._communes = []
+        else:
             LOGGER.debug("Communes found: %s", self._communes)
 
         if not self._communes:
-            self._errors["base"] = "no_communes_found"
+            self._errors["base"] = self._errors.get("base") or "no_communes_found"
 
         commune_options = {
             commune["libelle"]: commune["libelle"] for commune in self._communes

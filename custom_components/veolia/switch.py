@@ -1,229 +1,146 @@
 """Switch platform for Veolia."""
 
-from dataclasses import asdict
+from dataclasses import dataclass
+from typing import Any, Final
 
-from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER, NAME
+from . import VeoliaConfigEntry
+from .const import LOGGER
+from .entity import VeoliaEntity
 
 
-async def async_setup_entry(hass, entry, async_add_devices) -> None:
+@dataclass(frozen=True, kw_only=True)
+class VeoliaSwitchEntityDescription(SwitchEntityDescription):
+    """Represents a Veolia switch."""
+
+    icon_off: str | None = None
+    notification_method: str | None = None
+    status: str | None = None
+    threshold: str | None = None
+
+
+SWITCH_TYPES: Final[tuple[VeoliaSwitchEntityDescription, ...]] = (
+    VeoliaSwitchEntityDescription(
+        key="daily_sms_alert_switch",
+        name="Daily SMS Alert",
+        translation_key="daily_sms_alert_switch",
+        icon="mdi:comment-check",
+        icon_off="mdi:comment-off",
+        notification_method="daily_notif_sms",
+        status="daily_enabled",
+        threshold="daily_threshold",
+    ),
+    VeoliaSwitchEntityDescription(
+        key="monthly_sms_alert_switch",
+        name="Monthly SMS Alert",
+        translation_key="monthly_sms_alert_switch",
+        icon="mdi:comment-check",
+        icon_off="mdi:comment-off",
+        notification_method="monthly_notif_sms",
+        status="monthly_enabled",
+        threshold="monthly_threshold",
+    ),
+)
+
+UNOCCUPIED_ALERT_SWITCH_DESCRIPTION = VeoliaSwitchEntityDescription(
+    key="unoccupied_alert_switch",
+    name="Unoccupied Alert",
+    translation_key="unoccupied_alert_switch",
+    icon="mdi:comment-check",
+    icon_off="mdi:comment-off",
+)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: VeoliaConfigEntry,
+    async_add_devices: AddEntitiesCallback,
+) -> None:
     """Set up switch platform."""
     LOGGER.debug("Setting up switch platform")
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     switches = [
-        DailySMSAlerts(coordinator, entry),
-        MonthlySMSAlerts(coordinator, entry),
-        UnoccupiedAlertSwitch(coordinator, entry),
+        VeoliaSMSAlertSwitch(coordinator, description) for description in SWITCH_TYPES
     ]
+    switches.append(
+        UnoccupiedAlertSwitch(coordinator, UNOCCUPIED_ALERT_SWITCH_DESCRIPTION)
+    )
     async_add_devices(switches)
 
 
-class DailySMSAlerts(SwitchEntity):
-    """Representation of the daily SMS alert switch."""
-
-    def __init__(self, coordinator, config_entry) -> None:
-        """Initialize the entity."""
-        self.coordinator = coordinator
-        self.config_entry = config_entry
-
-    @property
-    def device_info(self) -> dict:
-        """Return device registry information for this entity."""
-        return {
-            "identifiers": {(DOMAIN, self.config_entry.entry_id)},
-            "manufacturer": NAME,
-            "name": NAME,
-        }
-
-    @property
-    def unique_id(self) -> str:
-        """Return a unique ID to use for this entity."""
-        return f"{self.config_entry.entry_id}_daily_sms_alert_switch"
-
-    @property
-    def has_entity_name(self) -> bool:
-        """Indicate that entity has name defined."""
-        return True
-
-    @property
-    def translation_key(self) -> str:
-        """Translation key for this entity."""
-        return "daily_sms_alert_switch"
+class VeoliaSMSAlertSwitch(VeoliaEntity, SwitchEntity):
+    """Representation of the Veolia SMS alert switch."""
 
     @property
     def icon(self) -> str:
         """Return the icon of the switch."""
-        if bool(self.coordinator.data.alert_settings.daily_notif_sms):
-            return "mdi:comment-check"
-        return "mdi:comment-off"
+        if bool(
+            getattr(
+                self.coordinator.data.alert_settings,
+                self.entity_description.notification_method,
+            )
+        ):
+            return self.entity_description.icon
+        return self.entity_description.icon_off
 
     @property
     def is_on(self) -> bool:
         """Return true if the switch is on."""
-        return bool(self.coordinator.data.alert_settings.daily_notif_sms)
+        return bool(
+            getattr(
+                self.coordinator.data.alert_settings,
+                self.entity_description.notification_method,
+            )
+        )
 
     @property
     def available(self) -> bool:
         """Return true if the switch is available."""
-        return (
-            not (
-                self.coordinator.data.alert_settings.daily_enabled
-                and self.coordinator.data.alert_settings.daily_threshold == 0
-            )
-            and self.coordinator.data.alert_settings.daily_enabled
+        LOGGER.debug(
+            "Checking availability for %s: %s",
+            self.__class__.__name__,
+            self.entity_description.status,
         )
+        alert_settings = self.coordinator.data.alert_settings
+        status = getattr(alert_settings, self.entity_description.status)
+        threshold = getattr(alert_settings, self.entity_description.threshold)
+        return not (status and threshold == 0) and status
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        LOGGER.debug("Turning on %s", self.__class__.__qualname__)
-        self.coordinator.data.alert_settings.daily_notif_sms = True
-        res = await self.coordinator.client_api.set_alerts_settings(
-            self.coordinator.data.alert_settings
+        setattr(
+            self.coordinator.data.alert_settings,
+            self.entity_description.notification_method,
+            True,
         )
-        if not res:
-            message = f"Failed to set alert= {self.__class__.__qualname__} settings= {asdict(self.coordinator.data.alert_settings)}"
-            raise RuntimeError(message)
-        await self.coordinator.async_request_refresh()
-        self.async_write_ha_state()
+        await self._async_push_alert_settings()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        LOGGER.debug("Turning off %s", self.__class__.__qualname__)
-        self.coordinator.data.alert_settings.daily_notif_sms = False
-        res = await self.coordinator.client_api.set_alerts_settings(
-            self.coordinator.data.alert_settings
+        setattr(
+            self.coordinator.data.alert_settings,
+            self.entity_description.notification_method,
+            False,
         )
-        if not res:
-            message = f"Failed to set alert= {self.__class__.__qualname__} settings= {asdict(self.coordinator.data.alert_settings)}"
-            raise RuntimeError(message)
-        await self.coordinator.async_request_refresh()
-        self.async_write_ha_state()
+        await self._async_push_alert_settings()
 
 
-class MonthlySMSAlerts(SwitchEntity):
-    """Representation of the monthly SMS alert switch."""
-
-    def __init__(self, coordinator, config_entry) -> None:
-        """Initialize the entity."""
-        self.coordinator = coordinator
-        self.config_entry = config_entry
-
-    @property
-    def device_info(self) -> dict:
-        """Return device registry information for this entity."""
-        return {
-            "identifiers": {(DOMAIN, self.config_entry.entry_id)},
-            "manufacturer": NAME,
-            "name": f"{NAME} {self.coordinator.data.id_abonnement}",
-        }
-
-    @property
-    def unique_id(self) -> str:
-        """Return a unique ID to use for this entity."""
-        return f"{self.config_entry.entry_id}_monthly_sms_alert_switch"
-
-    @property
-    def has_entity_name(self) -> bool:
-        """Indicate that entity has name defined."""
-        return True
-
-    @property
-    def translation_key(self) -> str:
-        """Translation key for this entity."""
-        return "monthly_sms_alert_switch"
-
-    @property
-    def icon(self) -> str:
-        """Return the icon of the switch."""
-        if bool(self.coordinator.data.alert_settings.monthly_notif_sms):
-            return "mdi:comment-check"
-        return "mdi:comment-off"
-
-    @property
-    def is_on(self) -> bool:
-        """Return true if the switch is on."""
-        return bool(self.coordinator.data.alert_settings.monthly_notif_sms)
-
-    @property
-    def available(self) -> bool:
-        """Return true if the switch is available."""
-        return (
-            not (
-                self.coordinator.data.alert_settings.daily_enabled
-                and self.coordinator.data.alert_settings.daily_threshold == 0
-            )
-            and self.coordinator.data.alert_settings.monthly_enabled
-        )
-
-    async def async_turn_on(self, **kwargs) -> None:
-        """Turn the switch on."""
-        LOGGER.debug("Turning on %s", self.__class__.__qualname__)
-        self.coordinator.data.alert_settings.monthly_notif_sms = True
-        res = await self.coordinator.client_api.set_alerts_settings(
-            self.coordinator.data.alert_settings
-        )
-        if not res:
-            message = f"Failed to set alert= {self.__class__.__qualname__} settings= {asdict(self.coordinator.data.alert_settings)}"
-            raise RuntimeError(message)
-        await self.coordinator.async_request_refresh()
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs) -> None:
-        """Turn the switch off."""
-        LOGGER.debug("Turning off %s", self.__class__.__qualname__)
-        self.coordinator.data.alert_settings.monthly_notif_sms = False
-        res = await self.coordinator.client_api.set_alerts_settings(
-            self.coordinator.data.alert_settings
-        )
-        if not res:
-            message = f"Failed to set alert= {self.__class__.__qualname__} settings= {asdict(self.coordinator.data.alert_settings)}"
-            raise RuntimeError(message)
-        await self.coordinator.async_request_refresh()
-        self.async_write_ha_state()
-
-
-class UnoccupiedAlertSwitch(SwitchEntity):
+class UnoccupiedAlertSwitch(VeoliaEntity, SwitchEntity):
     """Representation of the switch to activate the unoccupied alert."""
-
-    def __init__(self, coordinator, config_entry) -> None:
-        """Initialize the entity."""
-        self.coordinator = coordinator
-        self.config_entry = config_entry
-
-    @property
-    def device_info(self) -> dict:
-        """Return device registry information for this entity."""
-        return {
-            "identifiers": {(DOMAIN, self.config_entry.entry_id)},
-            "manufacturer": NAME,
-            "name": f"{NAME} {self.coordinator.data.id_abonnement}",
-        }
-
-    @property
-    def unique_id(self) -> str:
-        """Return a unique ID to use for this entity."""
-        return f"{self.config_entry.entry_id}_unoccupied_alert_switch"
-
-    @property
-    def has_entity_name(self) -> bool:
-        """Indicate that entity has name defined."""
-        return True
-
-    @property
-    def translation_key(self) -> str:
-        """Translation key for this entity."""
-        return "unoccupied_alert_switch"
 
     @property
     def icon(self) -> str:
         """Return the icon of the switch."""
         if (
-            bool(self.coordinator.data.alert_settings.daily_enabled)
+            self.coordinator.data.alert_settings
+            and bool(self.coordinator.data.alert_settings.daily_enabled)
             and self.coordinator.data.alert_settings.daily_threshold == 0
         ):
-            return "mdi:comment-check"
-        return "mdi:comment-off"
+            return self.entity_description.icon
+        return self.entity_description.icon_off
 
     @property
     def is_on(self) -> bool:
@@ -233,31 +150,20 @@ class UnoccupiedAlertSwitch(SwitchEntity):
             and self.coordinator.data.alert_settings.daily_threshold == 0
         )
 
+    @property
+    def available(self) -> bool:
+        """Return true if the switch is available."""
+        return self.coordinator.data.alert_settings is not None
+
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the switch on."""
-        LOGGER.debug("Turning on %s", self.__class__.__qualname__)
         self.coordinator.data.alert_settings.daily_enabled = True
         self.coordinator.data.alert_settings.daily_threshold = 0
         self.coordinator.data.alert_settings.daily_notif_sms = True
         self.coordinator.data.alert_settings.daily_notif_email = True
-        res = await self.coordinator.client_api.set_alerts_settings(
-            self.coordinator.data.alert_settings
-        )
-        if not res:
-            message = f"Failed to set alert= {self.__class__.__qualname__} settings= {asdict(self.coordinator.data.alert_settings)}"
-            raise RuntimeError(message)
-        await self.coordinator.async_request_refresh()
-        self.async_write_ha_state()
+        await self._async_push_alert_settings()
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the switch off."""
-        LOGGER.debug("Turning off %s", self.__class__.__qualname__)
         self.coordinator.data.alert_settings.daily_enabled = False
-        res = await self.coordinator.client_api.set_alerts_settings(
-            self.coordinator.data.alert_settings
-        )
-        if not res:
-            message = f"Failed to set alert= {self.__class__.__qualname__} settings= {asdict(self.coordinator.data.alert_settings)}"
-            raise RuntimeError(message)
-        await self.coordinator.async_request_refresh()
-        self.async_write_ha_state()
+        await self._async_push_alert_settings()

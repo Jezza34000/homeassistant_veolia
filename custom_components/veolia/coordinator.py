@@ -1,59 +1,56 @@
-"""DataUpdateCoordinator for integration_blueprint."""
+"""DataUpdateCoordinator for veolia."""
 
-from __future__ import annotations
-
-from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING
+from datetime import date, timedelta
+from typing import Any
 
 from dateutil.relativedelta import relativedelta
 from veolia_api import VeoliaAPI
 from veolia_api.exceptions import VeoliaAPIError
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_PORTAL_URL, DOMAIN, LOGGER
-from .data import VeoliaConfigEntry
 from .model import VeoliaModel
 
-if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
+SCAN_INTERVAL = timedelta(hours=6)
 
 
 class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
-    config_entry: VeoliaConfigEntry
-
     def __init__(
         self,
         hass: HomeAssistant,
+        config_entry: ConfigEntry,
     ) -> None:
         """Initialize."""
         super().__init__(
-            hass=hass,
-            logger=LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(hours=6),
+            hass=hass, logger=LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL
         )
         LOGGER.debug("Initializing client VeoliaAPI")
+        self.client_api: Any
+        self._initial_historical_fetch = False
+        self.session = async_get_clientsession(hass)
 
+    async def _async_setup(self) -> None:
+        """Coordinator setup."""
         self.client_api = VeoliaAPI(
             username=self.config_entry.data[CONF_USERNAME],
             password=self.config_entry.data[CONF_PASSWORD],
-            session=async_get_clientsession(hass),
+            session=self.session,
             portal_url=self.config_entry.data.get(CONF_PORTAL_URL),
         )
-
-        self._initial_historical_fetch = False
 
     async def _async_update_data(self) -> VeoliaModel:
         """Fetch and calculate data."""
         try:
-            now = datetime.now()
+            now = dt_util.now()
 
             if not self._initial_historical_fetch:
                 # First init
