@@ -9,7 +9,9 @@ LOGGER: Logger = getLogger(__package__)
 DOMAIN = "veolia"
 NAME = "Veolia"
 CONF_PORTAL_URL = "portal_url"
-COMMUNE_LOOKUP_URL = "https://prd-ael-sirius-refcommunes.istefr.fr/communes-nationales?q="
+COMMUNE_LOOKUP_URL = (
+    "https://prd-ael-sirius-refcommunes.istefr.fr/communes-nationales?q="
+)
 
 # Platforms
 PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.TEXT, Platform.BINARY_SENSOR]

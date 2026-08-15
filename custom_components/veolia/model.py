@@ -34,7 +34,7 @@ def _parse_date(s: str) -> date | None:
     """Parse date."""
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 
@@ -108,7 +108,7 @@ class VeoliaModel:
                     if m.get(YEAR) == current_year
                 )
             )
-        except (TypeError, ValueError, AttributeError):
+        except TypeError, ValueError, AttributeError:
             annual_total_m3 = None
 
         d_last = (last_daily or {}).get(DATA_DATE)
@@ -179,9 +179,7 @@ class VeoliaModel:
                     continue
                 if cur_state is None:
                     continue
-                start_dt = datetime(
-                    d.year, d.month, d.day, 0, 0, 0, tzinfo=UTC
-                )
+                start_dt = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=UTC)
                 cur_sum = cur_state
                 # Forward-fill
                 if last_idx_date is not None:
