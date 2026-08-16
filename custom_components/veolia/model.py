@@ -78,7 +78,7 @@ class VeoliaModel:
         return getattr(self.raw, name)
 
     @staticmethod
-    def from_account_data(raw: Any, *, today: date | None = None) -> VeoliaModel:
+    def from_account_data(raw: Any, *, today: date | None = None) -> "VeoliaModel":
         """Read data and populate VeoliaComputed model."""
         daily = raw.daily_consumption or []
         monthly = raw.monthly_consumption or []
