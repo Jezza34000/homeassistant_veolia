@@ -34,7 +34,7 @@ def _parse_date(s: str) -> date | None:
     """Parse date."""
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return None
 
 
