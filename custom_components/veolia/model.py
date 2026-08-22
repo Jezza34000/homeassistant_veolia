@@ -108,7 +108,7 @@ class VeoliaModel:
                     if m.get(YEAR) == current_year
                 )
             )
-        except (TypeError, ValueError, AttributeError):
+        except TypeError, ValueError, AttributeError:
             annual_total_m3 = None
 
         d_last = (last_daily or {}).get(DATA_DATE)
