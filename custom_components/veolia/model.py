@@ -175,7 +175,7 @@ class VeoliaModel:
                 idx = (record.get(IDX) or {}).get(CUBIC_METER)
                 try:
                     cur_state = float(idx) if idx is not None else None
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
                     continue
                 if cur_state is None:
                     continue
