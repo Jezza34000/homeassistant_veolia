@@ -1,11 +1,11 @@
 """Veolia model."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
+
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONSO,
@@ -26,7 +26,7 @@ def _safe_last(seq: Iterable[Any]) -> Any | None:
     try:
         s = list(seq) if not isinstance(seq, list) else seq
         return s[-1] if s else None
-    except Exception:
+    except TypeError:
         return None
 
 
@@ -34,7 +34,7 @@ def _parse_date(s: str) -> date | None:
     """Parse date."""
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
-    except Exception:
+    except TypeError, ValueError:
         return None
 
 
@@ -78,7 +78,7 @@ class VeoliaModel:
         return getattr(self.raw, name)
 
     @staticmethod
-    def from_account_data(raw: Any, *, today: date | None = None) -> VeoliaModel:
+    def from_account_data(raw: Any, *, today: date | None = None) -> "VeoliaModel":
         """Read data and populate VeoliaComputed model."""
         daily = raw.daily_consumption or []
         monthly = raw.monthly_consumption or []
@@ -100,7 +100,7 @@ class VeoliaModel:
         )
 
         try:
-            current_year = datetime.now().year
+            current_year = dt_util.now().year
             annual_total_m3 = float(
                 sum(
                     float((m.get(CONSO) or {}).get(CUBIC_METER) or 0.0)
@@ -108,7 +108,7 @@ class VeoliaModel:
                     if m.get(YEAR) == current_year
                 )
             )
-        except Exception:
+        except TypeError, ValueError, AttributeError:
             annual_total_m3 = None
 
         d_last = (last_daily or {}).get(DATA_DATE)
@@ -116,7 +116,7 @@ class VeoliaModel:
         daily_fiability = (last_daily or {}).get(IDX_FIABILITY)
         monthly_fiability = (last_month or {}).get(CONSO_FIABILITY)
         if today is None:
-            today = datetime.now().date()
+            today = dt_util.now().date()
         rec_today = _find_last_for_date(daily, today)
         if rec_today:
             _c = rec_today.get(CONSO) or {}
@@ -139,7 +139,7 @@ class VeoliaModel:
                 if not date_str:
                     continue
                 d = datetime.strptime(date_str, "%Y-%m-%d")
-                start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc)
+                start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=UTC)
                 liters = int((rec.get(CONSO) or {}).get(LITRE) or 0)
                 cumul_liters += liters
                 daily_stats_liters.append(
@@ -154,7 +154,7 @@ class VeoliaModel:
                     continue
                 date_str = f"{year}-{month}-{1}"
                 d = datetime.strptime(date_str, "%Y-%m-%d")
-                start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc)
+                start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=UTC)
                 cubic_meter = float((rec.get(CONSO) or {}).get(CUBIC_METER) or 0)
                 cumul_cubic_meter += cubic_meter
                 monthly_stats_cubic_meters.append(
@@ -162,7 +162,7 @@ class VeoliaModel:
                 )
             last_state = None
             last_sum = None
-            last_date = None
+            last_idx_date = None
             LOGGER.debug("Computing index_stats_m3 with data = %s", daily)
             for record in daily:
                 date_str = record.get(DATA_DATE)
@@ -175,20 +175,18 @@ class VeoliaModel:
                 idx = (record.get(IDX) or {}).get(CUBIC_METER)
                 try:
                     cur_state = float(idx) if idx is not None else None
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     continue
                 if cur_state is None:
                     continue
-                start_dt = datetime(
-                    d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc
-                )
+                start_dt = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=UTC)
                 cur_sum = cur_state
                 # Forward-fill
-                if last_date is not None:
-                    gap = (d - last_date).days
+                if last_idx_date is not None:
+                    gap = (d - last_idx_date).days
                     if gap > 1 and last_state is not None and last_sum is not None:
                         for i in range(1, gap):
-                            fill_d = last_date + timedelta(days=i)
+                            fill_d = last_idx_date + timedelta(days=i)
                             fill_dt = datetime(
                                 fill_d.year,
                                 fill_d.month,
@@ -196,7 +194,7 @@ class VeoliaModel:
                                 0,
                                 0,
                                 0,
-                                tzinfo=timezone.utc,
+                                tzinfo=UTC,
                             )
                             index_stats_m3.append(
                                 {"start": fill_dt, "state": last_state, "sum": last_sum}
@@ -206,18 +204,18 @@ class VeoliaModel:
                 )
                 last_state = cur_state
                 last_sum = cur_sum
-                last_date = d
+                last_idx_date = d
             # Forward-fill until today
             if (
-                last_date is not None
+                last_idx_date is not None
                 and last_state is not None
                 and last_sum is not None
             ):
-                today = datetime.now(timezone.utc).date()
-                gap = (today - last_date).days
+                fill_until = dt_util.now().date()
+                gap = (fill_until - last_idx_date).days
                 if gap >= 1:
                     for i in range(1, gap + 1):
-                        fill_d = last_date + timedelta(days=i)
+                        fill_d = last_idx_date + timedelta(days=i)
                         fill_dt = datetime(
                             fill_d.year,
                             fill_d.month,
@@ -225,12 +223,12 @@ class VeoliaModel:
                             0,
                             0,
                             0,
-                            tzinfo=timezone.utc,
+                            tzinfo=UTC,
                         )
                         index_stats_m3.append(
                             {"start": fill_dt, "state": last_state, "sum": last_sum}
                         )
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             LOGGER.warning(
                 "An exception occur when computing Statistics, details=%s", e
             )

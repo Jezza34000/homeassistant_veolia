@@ -2,15 +2,19 @@
 
 from logging import Logger, getLogger
 
+from homeassistant.const import Platform
+
 LOGGER: Logger = getLogger(__package__)
 
 DOMAIN = "veolia"
 NAME = "Veolia"
 CONF_PORTAL_URL = "portal_url"
+COMMUNE_LOOKUP_URL = (
+    "https://prd-ael-sirius-refcommunes.istefr.fr/communes-nationales?q="
+)
 
 # Platforms
-SENSOR = "sensor"
-PLATFORMS = [SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.TEXT, Platform.BINARY_SENSOR]
 
 # API constants keys
 LAST_DATA = -1
