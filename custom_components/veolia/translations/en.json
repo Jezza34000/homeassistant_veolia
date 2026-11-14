@@ -85,5 +85,11 @@
         "name": "Unoccupied alert"
       }
     }
+  },
+  "issues": {
+    "statistics_import_failed": {
+      "title": "Veolia: water history could not be saved",
+      "description": "The Veolia integration could not save your daily water consumption into the Home Assistant history (the statistic used by the Energy dashboard). Sensors keep working. It will retry at the next update, and this message disappears once it succeeds.\n\nError: {error}"
+    }
   }
 }

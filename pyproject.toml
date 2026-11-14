@@ -281,3 +281,8 @@ commands = [["pre-commit", "run", "--all-files"]]
 [testenv.pre-commit]
 deps = ["pre-commit"]
 commands = ["pre-commit run --all-files"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
