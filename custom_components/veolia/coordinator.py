@@ -10,7 +10,7 @@ from veolia_api.exceptions import VeoliaAPIError, VeoliaAPIGetDataError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -66,8 +66,12 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
                         end_date,
                     )
                 except VeoliaAPIGetDataError as err:
+                    # Only retry shorter when the account was loaded, i.e. the
+                    # history requests failed, not the login/account calls.
+                    if not self.client_api.account_data.date_debut_abonnement:
+                        raise
                     LOGGER.warning(
-                        "Veolia refused %s months of history (%s), fetching %s months",
+                        "Could not fetch %s months of history (%s), fetching %s months",
                         INITIAL_HISTORY_MONTHS,
                         err,
                         FALLBACK_HISTORY_MONTHS,
@@ -87,7 +91,9 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
             account_data = self.client_api.account_data
             try:
                 await async_import_daily_consumption(self.hass, account_data)
-            except (ValueError, TypeError, KeyError, HomeAssistantError) as err:
+            except Exception as err:  # noqa: BLE001
+                # Never let the statistics import (recorder/database errors
+                # included) make the sensors unavailable.
                 LOGGER.warning("Could not import Veolia statistics: %s", err)
             today = dt_util.now().date()
             return VeoliaModel.from_account_data(account_data, today=today)
