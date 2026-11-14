@@ -85,5 +85,11 @@
         "name": "Alerte logement vide"
       }
     }
+  },
+  "issues": {
+    "statistics_import_failed": {
+      "title": "Veolia : l'historique de consommation n'a pas pu être enregistré",
+      "description": "L'intégration Veolia n'a pas pu enregistrer votre consommation d'eau journalière dans l'historique de Home Assistant (la statistique utilisée par le tableau Énergie). Les capteurs continuent de fonctionner. Une nouvelle tentative aura lieu à la prochaine mise à jour, et ce message disparaîtra dès qu'elle réussira.\n\nErreur : {error}"
+    }
   }
 }

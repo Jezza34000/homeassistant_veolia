@@ -4,13 +4,15 @@ from datetime import date, timedelta
 from typing import Any
 
 from dateutil.relativedelta import relativedelta
+from sqlalchemy.exc import SQLAlchemyError
 from veolia_api import VeoliaAPI
 from veolia_api.exceptions import VeoliaAPIError, VeoliaAPIGetDataError
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -35,7 +37,11 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Initialize."""
         super().__init__(
-            hass=hass, logger=LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL
+            hass=hass,
+            logger=LOGGER,
+            config_entry=config_entry,
+            name=DOMAIN,
+            update_interval=SCAN_INTERVAL,
         )
         LOGGER.debug("Initializing client VeoliaAPI")
         self.client_api: Any
@@ -89,15 +95,29 @@ class VeoliaDataUpdateCoordinator(DataUpdateCoordinator):
                 )
 
             account_data = self.client_api.account_data
-            try:
-                await async_import_daily_consumption(self.hass, account_data)
-            except Exception as err:  # noqa: BLE001
-                # Never let the statistics import (recorder/database errors
-                # included) make the sensors unavailable.
-                LOGGER.warning("Could not import Veolia statistics: %s", err)
+            await self._async_import_statistics(account_data)
             today = dt_util.now().date()
             return VeoliaModel.from_account_data(account_data, today=today)
         except VeoliaAPIGetDataError as err:
             raise UpdateFailed(str(err)) from err
         except VeoliaAPIError as exception:
             raise ConfigEntryAuthFailed(exception) from exception
+
+    async def _async_import_statistics(self, account_data: Any) -> None:
+        """Import the history; on a recorder error keep sensors and warn in Repairs."""
+        issue_id = f"statistics_import_failed_{self.config_entry.entry_id}"
+        try:
+            await async_import_daily_consumption(self.hass, account_data)
+        except (HomeAssistantError, SQLAlchemyError) as err:
+            LOGGER.warning("Could not import Veolia statistics: %s", err)
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="statistics_import_failed",
+                translation_placeholders={"error": str(err)},
+            )
+        else:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
