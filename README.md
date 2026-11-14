@@ -81,15 +81,17 @@ Informations supplémentaires :
 
 ### Visualisation des données de consommation
 
-L'intégration Veolia permet de visualiser les données de consommation d'eau en natif dans Home Assistant. Elle re-télécharge l'historique du mois en cours depuis Véolia et met à jour la base de données Home Assistant.
+L'intégration Veolia permet de visualiser les données de consommation d'eau en natif dans Home Assistant. Au démarrage, elle télécharge les 2 dernières années de relevés journaliers (l'historique que Veolia conserve), puis les 2 derniers mois à chaque mise à jour, et enregistre chaque jour dans la statistique **`Veolia xxx consumption`** (en m³).
 
-> Pour visualiser les informations à la bonne date, il est nécéssaire d'utiliser le sensor de consommation journalière (l'utilisation du sensor index compteur générera un décalage dans les dates)
+> Chaque jour est rangé **à sa vraie date**, même si Veolia publie les relevés avec un ou plusieurs jours de retard : pas de décalage, pas de valeur négative. Utilisez cette statistique plutôt que les sensors `veolia_xxx_conso_journaliere` ou index compteur (le sensor index génère un décalage dans les dates).
 
 #### 1. Ajout au dashboard energie de Home Assistant
 
 <a href=""><img src="images/dashboard_eau.png"></a>
 
-Pour ajouter la consommation d'eau au dashboard energie de Home Assistant, allez `Energie` -> crayon en haut à droite -> `Eau` -> `Ajouter une consommation d'eau` -> Dans le champ `Consommation d'eau` choissisez `sensor.veolia_xxx_conso_journaliere`
+Pour ajouter la consommation d'eau au dashboard energie de Home Assistant, allez `Energie` -> crayon en haut à droite -> `Eau` -> `Ajouter une consommation d'eau` -> Dans le champ `Consommation d'eau` choisissez la statistique `Veolia xxx consumption` (xxx = votre numéro d'abonnement).
+
+> Si vous utilisiez déjà `sensor.veolia_xxx_conso_journaliere`, remplacez-le par cette statistique : les 2 ans d'historique y sont déjà, datés correctement.
 
 <a href=""><img src="images/consommation.png"></a>
 
